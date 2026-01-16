@@ -2,23 +2,22 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 
-local player = Players.LocalPlayer
-
 pcall(function()
     StarterGui:SetCore("SendNotification",{
-        Title = "Protect",
-        Text = "Script Protect loaded",
-        Duration = 5
+        Title = "Info",
+        Text = "Script Loaded ✅",
+        Duration = 4
     })
 end)
 
+local player = Players.LocalPlayer
 local HP_TRIGGER = 4500
-local ESCAPE_HEIGHT = 10000
-local RISE_SPEED = 30
+local DIST_X = 10000
+local SPEED = 150
 
 local char, hum, root
-local activated = false
-local targetY
+local active = false
+local targetX
 
 local function bind(c)
     char = c
@@ -33,18 +32,21 @@ RunService.Heartbeat:Connect(function()
     if not hum or not root then return end
     if hum.Health <= 0 then return end
 
-    if hum.Health < HP_TRIGGER and not activated then
-        activated = true
+    if hum.Health < HP_TRIGGER and not active then
+        active = true
         root.Anchored = true
-        targetY = root.Position.Y + ESCAPE_HEIGHT
+        targetX = root.Position.X + DIST_X
     end
 
-    if activated then
-        local pos = root.Position
-        if pos.Y < targetY then
-            root.CFrame = CFrame.new(pos.X, math.min(pos.Y + RISE_SPEED, targetY), pos.Z)
-        else
-            root.CFrame = CFrame.new(pos.X, targetY, pos.Z)
+    if active then
+        for _,v in ipairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
         end
+
+        local p = root.Position
+        local nextX = math.min(p.X + SPEED, targetX)
+        root.CFrame = CFrame.new(nextX, p.Y, p.Z)
     end
 end)
