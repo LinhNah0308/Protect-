@@ -19,7 +19,6 @@ local function bind(c)
     hum = c:WaitForChild("Humanoid")
     root = c:WaitForChild("HumanoidRootPart")
     moving = false
-    forcedUsed = false
 end
 
 bind(player.Character or player.CharacterAdded:Wait())
@@ -36,7 +35,7 @@ local function escape()
     moving = true
 
     local moved = 0
-    while hum.Health > 0 and moved < TOTAL_DISTANCE do
+    while hum and hum.Health > 0 and moved < TOTAL_DISTANCE do
         local step = math.min(STEP_DISTANCE, TOTAL_DISTANCE - moved)
         local targetPos = root.Position + Vector3.new(step,0,0)
         local t = step / SPEED
@@ -56,7 +55,18 @@ local function escape()
     moving = false
 end
 
-task.delay(FORCE_TIME, function()
+task.spawn(function()
+    local remaining = FORCE_TIME
+    while remaining > 0 and not forcedUsed do
+        StarterGui:SetCore("SendNotification",{
+            Title="-Script Notification-",
+            Text="Teleport sau "..remaining.."s",
+            Duration=3
+        })
+        task.wait(10)
+        remaining -= 10
+    end
+
     if not forcedUsed then
         forcedUsed = true
         escape()
