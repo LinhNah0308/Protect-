@@ -13,12 +13,12 @@ pcall(function()
 end)
 
 local HP_TRIGGER = 4500
-local ESCAPE_HEIGHT = 2000
-local RISE_SPEED = 25
+local ESCAPE_HEIGHT = 10000
+local RISE_SPEED = 30
 
 local char, hum, root
-local escaping = false
-local startY, targetY
+local activated = false
+local targetY
 
 local function bind(c)
     char = c
@@ -29,26 +29,22 @@ end
 bind(player.Character or player.CharacterAdded:Wait())
 player.CharacterAdded:Connect(bind)
 
-RunService.Heartbeat:Connect(function(dt)
+RunService.Heartbeat:Connect(function()
     if not hum or not root then return end
     if hum.Health <= 0 then return end
 
-    if hum.Health < HP_TRIGGER then
-        if not escaping then
-            escaping = true
-            root.Anchored = true
-            startY = root.Position.Y
-            targetY = startY + ESCAPE_HEIGHT
-        end
+    if hum.Health < HP_TRIGGER and not activated then
+        activated = true
+        root.Anchored = true
+        targetY = root.Position.Y + ESCAPE_HEIGHT
+    end
 
-        local current = root.Position
-        local nextY = math.min(current.Y + RISE_SPEED, targetY)
-        root.CFrame = CFrame.new(current.X, nextY, current.Z)
-
-    else
-        escaping = false
-        if root.Anchored then
-            root.Anchored = false
+    if activated then
+        local pos = root.Position
+        if pos.Y < targetY then
+            root.CFrame = CFrame.new(pos.X, math.min(pos.Y + RISE_SPEED, targetY), pos.Z)
+        else
+            root.CFrame = CFrame.new(pos.X, targetY, pos.Z)
         end
     end
 end)
