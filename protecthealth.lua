@@ -1,93 +1,63 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
-local DISTANCE_X = 10000
+local STEP_DISTANCE = 250
+local TOTAL_DISTANCE = 10000
 local SPEED = 370
 local HP_TRIGGER = 4700
 local CHECK_DELAY = 0.3
 
 local player = Players.LocalPlayer
-local character
-local humanoid
-local root
+local char, hum, root
 
-local flying = false
-local holding = false
-local holdPos
-local stepConn
+local moving = false
 
-local function resetState()
-    flying = false
-    holding = false
-    holdPos = nil
-    if stepConn then
-        stepConn:Disconnect()
-        stepConn = nil
-    end
+local function bind(c)
+    char = c
+    hum = c:WaitForChild("Humanoid")
+    root = c:WaitForChild("HumanoidRootPart")
+    moving = false
 end
 
-local function bindChar(char)
-    resetState()
-    character = char
-    humanoid = char:WaitForChild("Humanoid")
-    root = char:WaitForChild("HumanoidRootPart")
-
-    stepConn = RunService.Stepped:Connect(function()
-        if holding and root and character then
-            for _,v in ipairs(character:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                    v.AssemblyLinearVelocity = Vector3.zero
-                end
-            end
-            root.CFrame = CFrame.new(holdPos)
-        end
-    end)
-end
-
-bindChar(player.Character or player.CharacterAdded:Wait())
-player.CharacterAdded:Connect(bindChar)
+bind(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(bind)
 
 StarterGui:SetCore("SendNotification",{
-    Title = "-Script Notification-",
-    Text = "Script Loaded ✅",
-    Duration = 5
+    Title="-Script Notification-",
+    Text="Script Loaded ✅",
+    Duration=5
 })
 
 task.spawn(function()
     while true do
         task.wait(CHECK_DELAY)
 
-        if humanoid and root and humanoid.Health > 0 then
-            if humanoid.Health < HP_TRIGGER and not flying then
-                flying = true
-                holding = false
-                holdPos = nil
+        if hum and hum.Health > 0 and hum.Health < HP_TRIGGER and not moving then
+            moving = true
+            local moved = 0
 
-                humanoid.PlatformStand = true
-
+            while hum.Health > 0 and moved < TOTAL_DISTANCE do
                 local startPos = root.Position
-                local targetPos = startPos + Vector3.new(DISTANCE_X,0,0)
-                local time = (targetPos - startPos).Magnitude / SPEED
+                local step = math.min(STEP_DISTANCE, TOTAL_DISTANCE - moved)
+                local targetPos = startPos + Vector3.new(step,0,0)
 
+                local t = step / SPEED
                 local tween = TweenService:Create(
                     root,
-                    TweenInfo.new(time,Enum.EasingStyle.Linear),
+                    TweenInfo.new(t,Enum.EasingStyle.Linear),
                     {CFrame = CFrame.new(targetPos)}
                 )
 
                 tween:Play()
                 tween.Completed:Wait()
 
-                humanoid.PlatformStand = false
-
-                if humanoid.Health > 0 then
-                    holdPos = root.Position
-                    holding = true
-                end
+                moved += step
+                task.wait(0.05)
             end
+
+            moving = false
         end
     end
 end)
