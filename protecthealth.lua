@@ -4,21 +4,21 @@ local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
 
 local DISTANCE_X = 10000
-local SPEED = 360
+local SPEED = 370
 local HP_TRIGGER = 4700
 local CHECK_DELAY = 0.3
 
 local player = Players.LocalPlayer
-local character = nil
-local humanoid = nil
-local root = nil
+local character
+local humanoid
+local root
 
 local flying = false
 local holding = false
-local holdPos = nil
-local stepConn = nil
+local holdPos
+local stepConn
 
-local function clearState()
+local function resetState()
     flying = false
     holding = false
     holdPos = nil
@@ -28,15 +28,15 @@ local function clearState()
     end
 end
 
-local function bindCharacter(char)
-    clearState()
+local function bindChar(char)
+    resetState()
     character = char
     humanoid = char:WaitForChild("Humanoid")
     root = char:WaitForChild("HumanoidRootPart")
 
     stepConn = RunService.Stepped:Connect(function()
-        if holding and character and root then
-            for _,v in pairs(character:GetDescendants()) do
+        if holding and root and character then
+            for _,v in ipairs(character:GetDescendants()) do
                 if v:IsA("BasePart") then
                     v.CanCollide = false
                     v.AssemblyLinearVelocity = Vector3.zero
@@ -47,8 +47,8 @@ local function bindCharacter(char)
     end)
 end
 
-bindCharacter(player.Character or player.CharacterAdded:Wait())
-player.CharacterAdded:Connect(bindCharacter)
+bindChar(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(bindChar)
 
 StarterGui:SetCore("SendNotification",{
     Title = "-Script Notification-",
@@ -66,6 +66,8 @@ task.spawn(function()
                 holding = false
                 holdPos = nil
 
+                humanoid.PlatformStand = true
+
                 local startPos = root.Position
                 local targetPos = startPos + Vector3.new(DISTANCE_X,0,0)
                 local time = (targetPos - startPos).Magnitude / SPEED
@@ -79,7 +81,9 @@ task.spawn(function()
                 tween:Play()
                 tween.Completed:Wait()
 
-                if root and humanoid.Health > 0 then
+                humanoid.PlatformStand = false
+
+                if humanoid.Health > 0 then
                     holdPos = root.Position
                     holding = true
                 end
