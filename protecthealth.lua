@@ -12,7 +12,6 @@ local FORCE_TIME = 180
 local player = Players.LocalPlayer
 local char, hum, root
 local moving = false
-local startTime = os.clock()
 local forcedUsed = false
 
 local function bind(c)
@@ -20,6 +19,7 @@ local function bind(c)
     hum = c:WaitForChild("Humanoid")
     root = c:WaitForChild("HumanoidRootPart")
     moving = false
+    forcedUsed = false
 end
 
 bind(player.Character or player.CharacterAdded:Wait())
@@ -32,14 +32,13 @@ StarterGui:SetCore("SendNotification",{
 })
 
 local function escape()
-    if moving then return end
+    if moving or not hum or hum.Health <= 0 then return end
     moving = true
-    local moved = 0
 
-    while hum and hum.Health > 0 and moved < TOTAL_DISTANCE do
-        local startPos = root.Position
+    local moved = 0
+    while hum.Health > 0 and moved < TOTAL_DISTANCE do
         local step = math.min(STEP_DISTANCE, TOTAL_DISTANCE - moved)
-        local targetPos = startPos + Vector3.new(step,0,0)
+        local targetPos = root.Position + Vector3.new(step,0,0)
         local t = step / SPEED
 
         local tween = TweenService:Create(
@@ -57,17 +56,18 @@ local function escape()
     moving = false
 end
 
+task.delay(FORCE_TIME, function()
+    if not forcedUsed then
+        forcedUsed = true
+        escape()
+    end
+end)
+
 task.spawn(function()
     while true do
         task.wait(CHECK_DELAY)
-
-        if hum and hum.Health > 0 then
-            if hum.Health < HP_TRIGGER then
-                escape()
-            elseif not forcedUsed and os.clock() - startTime >= FORCE_TIME then
-                forcedUsed = true
-                escape()
-            end
+        if hum and hum.Health > 0 and hum.Health < HP_TRIGGER then
+            escape()
         end
     end
 end)
