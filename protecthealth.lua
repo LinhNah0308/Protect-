@@ -1,52 +1,64 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
-pcall(function()
-    StarterGui:SetCore("SendNotification",{
-        Title = "Info",
-        Text = "Script Loaded ✅",
-        Duration = 4
-    })
-end)
+local DISTANCE_X = 10000
+local HP_TRIGGER = 4700
+local CHECK_DELAY = 0.3
+local TWEEN_TIME = 4
 
 local player = Players.LocalPlayer
-local HP_TRIGGER = 4500
-local DIST_X = 10000
-local SPEED = 150
+local character
+local humanoid
+local root
+local flying = false
 
-local char, hum, root
-local active = false
-local targetX
-
-local function bind(c)
-    char = c
-    hum = c:WaitForChild("Humanoid")
-    root = c:WaitForChild("HumanoidRootPart")
+local function setupChar(char)
+    character = char
+    humanoid = char:WaitForChild("Humanoid",5)
+    root = char:WaitForChild("HumanoidRootPart",5)
+    flying = false
 end
 
-bind(player.Character or player.CharacterAdded:Wait())
-player.CharacterAdded:Connect(bind)
+setupChar(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(setupChar)
 
-RunService.Heartbeat:Connect(function()
-    if not hum or not root then return end
-    if hum.Health <= 0 then return end
+StarterGui:SetCore("SendNotification",{
+    Title = "-Script Notification-",
+    Text = "Script Loaded ✅",
+    Duration = 5
+})
 
-    if hum.Health < HP_TRIGGER and not active then
-        active = true
-        root.Anchored = true
-        targetX = root.Position.X + DIST_X
-    end
-
-    if active then
-        for _,v in ipairs(char:GetDescendants()) do
+RunService.Stepped:Connect(function()
+    if flying and character then
+        for _,v in pairs(character:GetDescendants()) do
             if v:IsA("BasePart") then
                 v.CanCollide = false
             end
         end
+    end
+end)
 
-        local p = root.Position
-        local nextX = math.min(p.X + SPEED, targetX)
-        root.CFrame = CFrame.new(nextX, p.Y, p.Z)
+task.spawn(function()
+    while true do
+        task.wait(CHECK_DELAY)
+
+        if humanoid and root and humanoid.Health > 0 then
+            if humanoid.Health < HP_TRIGGER and flying == false then
+                flying = true
+
+                local goal = {}
+                goal.CFrame = root.CFrame + Vector3.new(DISTANCE_X,0,0)
+
+                local tween = TweenService:Create(
+                    root,
+                    TweenInfo.new(TWEEN_TIME,Enum.EasingStyle.Linear),
+                    goal
+                )
+
+                tween:Play()
+            end
+        end
     end
 end)
